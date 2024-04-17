@@ -1,0 +1,108 @@
+connect to the SQLite3 database provided
+
+import sqlite3
+import pandas as pd
+
+# Connect to the SQLite database
+conn = sqlite3.connect('example.db')
+
+# Load data into a pandas DataFrame
+df = pd.read_sql_query("SELECT * FROM users", conn)
+
+# Close the connection
+conn.close()
+
+# Print the DataFrame
+print(df)
+
+2. extract the total quantities of each item bought per customer aged 18-35.
+
+import pandas as pd
+#after connecting to the DB  by using the above script
+# Assuming your data is loaded into DataFrames named:
+import pandas as pd
+# Assuming your data is loaded into DataFrames named:
+# - df_sales: Contains sales data (sales_id, customer_id)
+# - df_customer: Contains customer data (customer_id, age)
+# - df_orders: Contains order data (order_id, sales_id)
+# - df_items: Contains item data (item_id, item_name, quantity)
+
+# Join sales data with orders and items data
+df_joined = df_sales.merge(df_orders, on="sales_id")
+df_joined = df_joined.merge(df_items, on="order_id")
+
+# Group by customer and item, sum the quantity
+For each customer, get the sum of each item
+df_grouped = df_joined.groupby(["customer_id", "item_name"])["quantity"].sum()
+
+# Filter out items with no purchases
+Items with no purchase (total quantity=0) should be omitted from the final
+df_grouped = df_grouped[df_grouped > 0]
+
+- No decimal points allowed (The company doesn’t sell half of an item ;) )
+# Transform quantity to integer (no decimals)
+df_grouped = df_grouped.astype(int)
+
+# Unstack the grouped data and reset the index
+df_unstacked = df_grouped.unstack().reset_index()
+
+print(df_unstacked)
+
+sql
+WITH SalesAndItems AS (
+  SELECT s.customer_id, i.item_name, SUM(oi.quantity) AS quantity
+  FROM Sales s
+  INNER JOIN Orders o ON s.sales_id = o.sales_id
+  INNER JOIN OrderItems oi ON o.order_id = oi.order_id
+  INNER JOIN Items i ON oi.item_id = i.item_id
+  GROUP BY s.customer_id, i.item_name
+)
+SELECT customer_id, item_name, CAST(quantity AS INT) AS quantity
+FROM SalesAndItems
+WHERE quantity > 0;
+
+3. store the query to a CSV file, delimiter should be the semicolon character (';')
+
+df_unstacked.to_csv('C:\Users\sai kiran Reddy\Desktop\files\assignmnet.csv',sep=';',index=False)
+
+Test case:
+
+Customer 1 bought Item X on multiple occasions, totaling 10 for Item X only
+Customer 2 bought one of each item only once, totaling 1 each Item
+Customer 3 bought Item Z on two occasions, totaling 2 for Item Z only
+
+import pandas as pd
+# Pivot table to group by customer and item, count occurrences
+pivot_table = pd.pivot_table(df_unstacked, values="item_name", index="customer_id", columns="item_name", aggfunc="count").fillna(0)
+
+# Filter based on purchase details
+filtered_table = pivot_table.copy()
+filtered_table.loc[1, "Y"] = 0  # Customer 1 only bought X
+filtered_table.loc[1, "Z"] = 0  # Customer 1 only bought X
+filtered_table.loc[2:, "X"] = 1  # Customer 2 bought only 1 of each item
+filtered_table.loc[3, "Z"] = 2  # Customer 3 bought Z twice
+
+# Drop rows with all zeros (no purchases)
+filtered_table = filtered_table.loc[(filtered_table != 0).any(axis=1)]
+
+# Reset index
+filtered_table = filtered_table.reset_index()
+
+# Optional: Rename columns for better readability
+filtered_table.columns = ["Customer", "Age"] + list(filtered_table.columns)[2:]
+
+# Convert all columns to string for semicolon separation
+filtered_table = filtered_table.astype(str)
+
+# Define semicolon delimiter
+delimiter = ";"
+
+# Save to CSV file
+filtered_table.to_csv("customer_items_summary.csv", sep=delimiter, index=False)
+
+print("Output saved to customer_items_summary.csv with semicolon delimiter.")
+
+
+
+
+
